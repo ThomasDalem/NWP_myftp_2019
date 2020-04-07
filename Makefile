@@ -19,7 +19,7 @@ CLIENTNAME	=	client
 
 SERVERNAME	=	server
 
-CFLAGS		=	-Wall -Wextra -Werror
+CFLAGS		=	-Wall -Wextra -Werror -I./include/
 
 all: client server
 

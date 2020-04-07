@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -65,9 +66,8 @@ void addConnection(int *clients_fd, int server_fd)
     if (clients_fd[i] == -1) {
         perror("accept");
     }
-    printf("New connection:\n");
-    printf("IP Address: %s\n", inet_ntoa(addr.sin_addr));
-    printf("Port: %d\n", ntohs(addr.sin_port));
+    printf("New connection: %s", inet_ntoa(addr.sin_addr));
+    printf(":%d\n", ntohs(addr.sin_port));
     write(clients_fd[i], buffer, sizeof(buffer));
     close(clients_fd[i]);
     clients_fd[i] = 0;
@@ -77,22 +77,14 @@ int server_loop(int server_fd)
 {
     int client = 0;
     int clients_fd[10] = {0};
-    struct sockaddr_in addr = {0};
-    int socklen = sizeof(addr);
-    char *input = "";
     fd_set readfds;
     int max_fd = server_fd;
-    int activity = 0;
-    struct timeval tv;
 
-    tv.tv_sec = 5;
-    tv.tv_usec = 0;
     while (1) {
         FD_ZERO(&readfds);
         FD_SET(server_fd, &readfds);
         max_fd = add_child_socket_to_set(&readfds, clients_fd, max_fd);
-        activity = select(max_fd + 1, &readfds, NULL, NULL, &tv);
-        if (activity < 0) {
+        if (select(max_fd + 1, &readfds, NULL, NULL, NULL) == -1) {
             perror("select");
         }
         if (FD_ISSET(server_fd, &readfds)) {
@@ -102,15 +94,12 @@ int server_loop(int server_fd)
     }
 }
 
-int main(int ac, char **av)
+int server(int port)
 {
     int socket_fd = 0;
     struct sockaddr_in address = {0};
 
-    if (ac != 2) {
-        return (-1);
-    }
-    socket_fd = setSocket(&address, atoi(av[1]));
+    socket_fd = setSocket(&address, port);
     if (socket_fd == -1) {
         return (-1);
     }
